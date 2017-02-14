@@ -26,6 +26,12 @@ type fieldDecl struct {
 	Name string
 	Type string
 	Tag string
+	Conds []condDecl
+}
+
+type condDecl struct {
+	Name string
+	Value string
 }
 
 func ReadFile(filename string) packageDecl {
@@ -62,11 +68,7 @@ func ReadFile(filename string) packageDecl {
 						fieldType := nn.Type.(*ast.Ident).Name
 						fieldTag := nn.Tag.Value
 						structTag := reflect.StructTag(strings.Trim(fieldTag, "`"))
-						fd := fieldDecl{
-							Name: fieldName,
-							Type: fieldType,
-							Tag: structTag.Get("arg"),
-						}
+						fd := NewFieldDecl(fieldName, fieldType, structTag.Get("arg"))
 						sd.Fields = append(sd.Fields, fd)
 					}
 					return true
@@ -80,4 +82,22 @@ func ReadFile(filename string) packageDecl {
 	return pd
 }
 
-
+func NewFieldDecl(name, typ, tag string) fieldDecl {
+	f := fieldDecl{
+		Name: name,
+		Type: typ,
+		Tag: tag,
+		Conds: []condDecl{},
+	}
+	for _, t := range strings.Split(tag, ",") {
+		pair := strings.SplitN(t, "=", 2)
+		var c condDecl
+		if len(pair) == 2 {
+			c = condDecl{pair[0], pair[1]}
+		} else if len(pair) == 1 {
+			c = condDecl{pair[0], ""}
+		}
+		f.Conds = append(f.Conds, c)
+	}
+	return f
+}

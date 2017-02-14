@@ -19,10 +19,11 @@ func TestReadFile(t *testing.T) {
 		Name string
 		Type string
 		Tag string
+		Conds map[string]string
 	}{
-		{ "Name", "string", "required" },
-		{ "Color", "int64", "required" },
-		{ "Amount", "uint8", "min=1,max=100" },
+		{ "Name", "string", "required", map[string]string{"required":""}},
+		{ "Color", "int64", "required", map[string]string{"required":""} },
+		{ "Amount", "uint8", "min=1,max=100", map[string]string{"min":"1","max":"100"} },
 	}
 	for i, sample := range fieldSamples {
 		f := s.Fields[i]
@@ -30,6 +31,13 @@ func TestReadFile(t *testing.T) {
 			t.Errorf("invalid field: %v", f)
 		} else {
 			t.Logf("valid field: %v", f)
+		}
+		for _, c := range f.Conds {
+			if v, ok := sample.Conds[c.Name]; !ok || c.Value != v {
+				t.Errorf("invalid cond: %v", c)
+			} else {
+				t.Logf("valid cond: %v", c)
+			}
 		}
 	}
 }
