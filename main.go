@@ -46,6 +46,9 @@ func ReadFile(filename string) packageDecl {
 	ast.Inspect(f, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.TypeSpec:
+			if _, ok := n.Type.(*ast.StructType); !ok {
+				return true
+			}
 			sd := structDecl{
 				Name: n.Name.Name,
 				Fields: []fieldDecl{},
