@@ -7,9 +7,18 @@ import (
 	"go/parser"
 	"reflect"
 	"strings"
+	"path/filepath"
 )
 
+type packageDecl struct {
+	Name string
+	Dir string
+	File string
+	Structs []structDecl
+}
+
 type structDecl struct {
+	Name string
 	Fields []fieldDecl
 }
 
@@ -19,34 +28,28 @@ type fieldDecl struct {
 	Tag string
 }
 
-func ReadFile(filename string) {
+func ReadFile(filename string) packageDecl {
+
 	fset := token.NewFileSet()
 	f, e := parser.ParseFile(fset, filename, nil, 0)
 	if e != nil {
 		log.Fatal(e)
 	}
 
-	ast.Inspect(f, func(n ast.Node) bool {
-		//x, ok := n.(*ast.Ident)
-		//if !ok || x.Obj == nil || x.Obj.Kind != ast.Typ {
-		//	return true
-		//}
-		//ast.Print(fset, x)
-		//ast.Inspect(x, func(nn ast.Node) bool {
-		//	xx, ok := nn.(*ast.Field)
-		//	if !ok {
-		//		//
-		//		// return true
-		//	}
-		//	ast.Print(fset, xx)
-		//	return true
-		//})
-		//return true
+	pd := packageDecl{
+		Name: f.Name.Name,
+		Dir: filepath.Dir(filename),
+		File: filepath.Base(filename),
+		Structs: []structDecl{},
+	}
 
+	ast.Inspect(f, func(n ast.Node) bool {
 		switch n := n.(type) {
 		case *ast.TypeSpec:
-			structName := n.Name.Name
-			log.Printf("struct name: %s", structName)
+			sd := structDecl{
+				Name: n.Name.Name,
+				Fields: []fieldDecl{},
+			}
 			// ast.Print(fset, n)
 			if n.Name.Obj != nil && n.Name.Obj.Kind == ast.Typ {
 				ast.Inspect(n, func(nn ast.Node) bool {
@@ -56,15 +59,22 @@ func ReadFile(filename string) {
 						fieldType := nn.Type.(*ast.Ident).Name
 						fieldTag := nn.Tag.Value
 						structTag := reflect.StructTag(strings.Trim(fieldTag, "`"))
-						log.Printf("field name: %s, type: %s, tag: %s, st: %s, arg: %s", fieldName, fieldType, fieldTag, structTag, structTag.Get("arg"))
-						// ast.Print(fset, nn)
+						fd := fieldDecl{
+							Name: fieldName,
+							Type: fieldType,
+							Tag: structTag.Get("arg"),
+						}
+						sd.Fields = append(sd.Fields, fd)
 					}
 					return true
 				})
 			}
+			pd.Structs = append(pd.Structs, sd)
 		}
 		return true
 	})
+
+	return pd
 }
 
 
