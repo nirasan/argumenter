@@ -52,6 +52,12 @@ func TestFieldDecl_Generate(t *testing.T) {
 		Name, Type, Tag, Out string
 	}{
 		{"N", "int", "default=1", `if self.N == 0 { self.N = 1 }`},
+		{"List", "[]int", "required", `if self.List == nil { return errors.New("List must not nil") }`},
+		{"List", "[]int", "zero", `if self.List != nil { return errors.New("List must nil") }`},
+		{"N", "int", "min=0", `if self.N < 0 { return errors.New("N must greater than or equal 0") }`},
+		{"N", "int", "max=100", `if self.N > 100 { return errors.New("N must less than or equal 100") }`},
+		{"N", "int", "gt=0", `if self.N <= 0 { return errors.New("N must greater than 0") }`},
+		{"N", "int", "lt=100", `if self.N >= 100 { return errors.New("N must less than 100") }`},
 	}
 	w := new(bytes.Buffer)
 	for _, sample := range samples {
@@ -60,11 +66,12 @@ func TestFieldDecl_Generate(t *testing.T) {
 		if e != nil {
 			t.Error("error: %v", e)
 		}
+
 		re := regexp.MustCompile(`[\s\n]+`)
 		out := re.ReplaceAllString(w.String(), " ")
 		out = strings.Trim(out, " ")
 		if out != sample.Out {
-			t.Errorf("not match: %v", out)
+			t.Errorf("not match:\nEXPECT:\t%v\nOUT:\t%v", sample.Out, out)
 		} else {
 			t.Logf("match: %v", out)
 		}

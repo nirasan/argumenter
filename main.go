@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"go/ast"
 	"go/parser"
 	"go/token"
@@ -10,7 +11,6 @@ import (
 	"reflect"
 	"regexp"
 	"strings"
-	"text/template"
 )
 
 type packageDecl struct {
@@ -105,26 +105,43 @@ func NewFieldDecl(name, typ, tag string) fieldDecl {
 	return f
 }
 
-var defaultTemplate = template.Must(template.New("default").Parse(`
-if {{ .Self }}.{{ .Field }} == {{ .Zero }} {
-	{{ .Self }}.{{ .Field }} = {{ .Default }}
-}`))
-
-type defaultTemplateInput struct {
-	Self, Field, Zero, Default string
-}
-
 func (f fieldDecl) Generate(w io.Writer, self string) error {
 	zero := f.Zero()
 	for _, c := range f.Conds {
+		var e error
 		switch c.Name {
 		case "default":
-			e := defaultTemplate.Execute(w, defaultTemplateInput{
+			e = defaultTemplate.Execute(w, defaultTemplateInput{
 				self, f.Name, zero, c.Value,
 			})
-			if e != nil {
-				return e
-			}
+		case "required", "notzero":
+			e = opTemplate.Execute(w, opTemplateInput{
+				self, f.Name, "==", zero, fmt.Sprintf("%s must not %s", f.Name, zero),
+			})
+		case "zero":
+			e = opTemplate.Execute(w, opTemplateInput{
+				self, f.Name, "!=", zero, fmt.Sprintf("%s must %s", f.Name, zero),
+			})
+		case "min", "gte":
+			e = opTemplate.Execute(w, opTemplateInput{
+				self, f.Name, "<", c.Value, fmt.Sprintf("%s must greater than or equal %s", f.Name, c.Value),
+			})
+		case "max", "lte":
+			e = opTemplate.Execute(w, opTemplateInput{
+				self, f.Name, ">", c.Value, fmt.Sprintf("%s must less than or equal %s", f.Name, c.Value),
+			})
+		case "gt":
+			e = opTemplate.Execute(w, opTemplateInput{
+				self, f.Name, "<=", c.Value, fmt.Sprintf("%s must greater than %s", f.Name, c.Value),
+			})
+		case "lt":
+			e = opTemplate.Execute(w, opTemplateInput{
+				self, f.Name, ">=", c.Value, fmt.Sprintf("%s must less than"+
+					" %s", f.Name, c.Value),
+			})
+		}
+		if e != nil {
+			return e
 		}
 	}
 	return nil
