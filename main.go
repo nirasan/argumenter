@@ -1,36 +1,39 @@
 package main
 
 import (
-	"log"
 	"go/ast"
-	"go/token"
 	"go/parser"
-	"reflect"
-	"strings"
+	"go/token"
+	"io"
+	"log"
 	"path/filepath"
+	"reflect"
+	"regexp"
+	"strings"
+	"text/template"
 )
 
 type packageDecl struct {
-	Name string
-	Dir string
-	File string
+	Name    string
+	Dir     string
+	File    string
 	Structs []structDecl
 }
 
 type structDecl struct {
-	Name string
+	Name   string
 	Fields []fieldDecl
 }
 
 type fieldDecl struct {
-	Name string
-	Type string
-	Tag string
+	Name  string
+	Type  string
+	Tag   string
 	Conds []condDecl
 }
 
 type condDecl struct {
-	Name string
+	Name  string
 	Value string
 }
 
@@ -43,9 +46,9 @@ func ReadFile(filename string) packageDecl {
 	}
 
 	pd := packageDecl{
-		Name: f.Name.Name,
-		Dir: filepath.Dir(filename),
-		File: filepath.Base(filename),
+		Name:    f.Name.Name,
+		Dir:     filepath.Dir(filename),
+		File:    filepath.Base(filename),
 		Structs: []structDecl{},
 	}
 
@@ -56,7 +59,7 @@ func ReadFile(filename string) packageDecl {
 				return true
 			}
 			sd := structDecl{
-				Name: n.Name.Name,
+				Name:   n.Name.Name,
 				Fields: []fieldDecl{},
 			}
 			// ast.Print(fset, n)
@@ -84,9 +87,9 @@ func ReadFile(filename string) packageDecl {
 
 func NewFieldDecl(name, typ, tag string) fieldDecl {
 	f := fieldDecl{
-		Name: name,
-		Type: typ,
-		Tag: tag,
+		Name:  name,
+		Type:  typ,
+		Tag:   tag,
 		Conds: []condDecl{},
 	}
 	for _, t := range strings.Split(tag, ",") {
@@ -100,4 +103,41 @@ func NewFieldDecl(name, typ, tag string) fieldDecl {
 		f.Conds = append(f.Conds, c)
 	}
 	return f
+}
+
+var defaultTemplate = template.Must(template.New("default").Parse(`
+if {{ .Self }}.{{ .Field }} == {{ .Zero }} {
+	{{ .Self }}.{{ .Field }} = {{ .Default }}
+}`))
+
+type defaultTemplateInput struct {
+	Self, Field, Zero, Default string
+}
+
+func (f fieldDecl) Generate(w io.Writer, self string) error {
+	zero := f.Zero()
+	for _, c := range f.Conds {
+		switch c.Name {
+		case "default":
+			e := defaultTemplate.Execute(w, defaultTemplateInput{
+				self, f.Name, zero, c.Value,
+			})
+			if e != nil {
+				return e
+			}
+		}
+	}
+	return nil
+}
+
+func (f fieldDecl) Zero() string {
+	var zero string
+	if ok, _ := regexp.MatchString(`^(?:u?int|float)`, f.Type); ok {
+		zero = "0"
+	} else if ok, _ := regexp.MatchString(`^(?:\[\]|map)`, f.Type); ok {
+		zero = "nil"
+	} else if f.Type == "bool" {
+		zero = "false"
+	}
+	return zero
 }

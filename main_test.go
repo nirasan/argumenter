@@ -1,6 +1,11 @@
 package main
 
-import "testing"
+import (
+	"bytes"
+	"regexp"
+	"strings"
+	"testing"
+)
 
 func TestReadFile(t *testing.T) {
 	p := ReadFile("test/file1.go")
@@ -16,14 +21,14 @@ func TestReadFile(t *testing.T) {
 		t.Logf("valid struct: %v", s)
 	}
 	fieldSamples := []struct {
-		Name string
-		Type string
-		Tag string
+		Name  string
+		Type  string
+		Tag   string
 		Conds map[string]string
 	}{
-		{ "Name", "string", "required", map[string]string{"required":""}},
-		{ "Color", "int64", "required", map[string]string{"required":""} },
-		{ "Amount", "uint8", "min=1,max=100", map[string]string{"min":"1","max":"100"} },
+		{"Name", "string", "required", map[string]string{"required": ""}},
+		{"Color", "int64", "required", map[string]string{"required": ""}},
+		{"Amount", "uint8", "min=1,max=100,default=1", map[string]string{"min": "1", "max": "100", "default": "1"}},
 	}
 	for i, sample := range fieldSamples {
 		f := s.Fields[i]
@@ -39,5 +44,30 @@ func TestReadFile(t *testing.T) {
 				t.Logf("valid cond: %v", c)
 			}
 		}
+	}
+}
+
+func TestFieldDecl_Generate(t *testing.T) {
+	samples := []struct {
+		Name, Type, Tag, Out string
+	}{
+		{"N", "int", "default=1", `if self.N == 0 { self.N = 1 }`},
+	}
+	w := new(bytes.Buffer)
+	for _, sample := range samples {
+		f := NewFieldDecl(sample.Name, sample.Type, sample.Tag)
+		e := f.Generate(w, "self")
+		if e != nil {
+			t.Error("error: %v", e)
+		}
+		re := regexp.MustCompile(`[\s\n]+`)
+		out := re.ReplaceAllString(w.String(), " ")
+		out = strings.Trim(out, " ")
+		if out != sample.Out {
+			t.Errorf("not match: %v", out)
+		} else {
+			t.Logf("match: %v", out)
+		}
+		w.Reset()
 	}
 }
