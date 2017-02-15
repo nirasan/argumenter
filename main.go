@@ -107,37 +107,50 @@ func NewFieldDecl(name, typ, tag string) fieldDecl {
 
 func (f fieldDecl) Generate(w io.Writer, self string) error {
 	zero := f.Zero()
+	field := self + "." + f.Name
+	fieldlen := "len(" + field + ")"
 	for _, c := range f.Conds {
 		var e error
 		switch c.Name {
 		case "default":
 			e = defaultTemplate.Execute(w, defaultTemplateInput{
-				self, f.Name, zero, c.Value,
+				field, zero, c.Value,
 			})
 		case "required", "notzero":
 			e = opTemplate.Execute(w, opTemplateInput{
-				self, f.Name, "==", zero, fmt.Sprintf("%s must not %s", f.Name, zero),
+				field, "==", zero, fmt.Sprintf("%s must not %s", f.Name, zero),
 			})
 		case "zero":
 			e = opTemplate.Execute(w, opTemplateInput{
-				self, f.Name, "!=", zero, fmt.Sprintf("%s must %s", f.Name, zero),
+				field, "!=", zero, fmt.Sprintf("%s must %s", f.Name, zero),
 			})
 		case "min", "gte":
 			e = opTemplate.Execute(w, opTemplateInput{
-				self, f.Name, "<", c.Value, fmt.Sprintf("%s must greater than or equal %s", f.Name, c.Value),
+				field, "<", c.Value, fmt.Sprintf("%s must greater than or equal %s", f.Name, c.Value),
 			})
 		case "max", "lte":
 			e = opTemplate.Execute(w, opTemplateInput{
-				self, f.Name, ">", c.Value, fmt.Sprintf("%s must less than or equal %s", f.Name, c.Value),
+				field, ">", c.Value, fmt.Sprintf("%s must less than or equal %s", f.Name, c.Value),
 			})
 		case "gt":
 			e = opTemplate.Execute(w, opTemplateInput{
-				self, f.Name, "<=", c.Value, fmt.Sprintf("%s must greater than %s", f.Name, c.Value),
+				field, "<=", c.Value, fmt.Sprintf("%s must greater than %s", f.Name, c.Value),
 			})
 		case "lt":
 			e = opTemplate.Execute(w, opTemplateInput{
-				self, f.Name, ">=", c.Value, fmt.Sprintf("%s must less than"+
-					" %s", f.Name, c.Value),
+				field, ">=", c.Value, fmt.Sprintf("%s must less than %s", f.Name, c.Value),
+			})
+		case "len":
+			e = opTemplate.Execute(w, opTemplateInput{
+				fieldlen, "!=", c.Value, fmt.Sprintf("%s length must %s", f.Name, c.Value),
+			})
+		case "lenmin":
+			e = opTemplate.Execute(w, opTemplateInput{
+				fieldlen, "<", c.Value, fmt.Sprintf("%s length must greater than or equal %s", f.Name, c.Value),
+			})
+		case "lenmax":
+			e = opTemplate.Execute(w, opTemplateInput{
+				fieldlen, ">", c.Value, fmt.Sprintf("%s length must less than or equal %s", f.Name, c.Value),
 			})
 		}
 		if e != nil {

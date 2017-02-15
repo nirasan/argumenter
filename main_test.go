@@ -58,6 +58,9 @@ func TestFieldDecl_Generate(t *testing.T) {
 		{"N", "int", "max=100", `if self.N > 100 { return errors.New("N must less than or equal 100") }`},
 		{"N", "int", "gt=0", `if self.N <= 0 { return errors.New("N must greater than 0") }`},
 		{"N", "int", "lt=100", `if self.N >= 100 { return errors.New("N must less than 100") }`},
+		{"List", "[]int", "len=2", `if len(self.List) != 2 { return errors.New("List length must 2") }`},
+		{"List", "[]int", "lenmin=1", `if len(self.List) < 1 { return errors.New("List length must greater than or equal 1") }`},
+		{"List", "[]int", "lenmax=10", `if len(self.List) > 10 { return errors.New("List length must less than or equal 10") }`},
 	}
 	w := new(bytes.Buffer)
 	for _, sample := range samples {
