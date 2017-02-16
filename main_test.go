@@ -52,6 +52,16 @@ func TestFieldDecl_Generate(t *testing.T) {
 		Name, Type, Tag, Out string
 	}{
 		{"N", "int", "default=1", `if self.N == 0 { self.N = 1 }`},
+		{"N", "uint", "default=1", `if self.N == 0 { self.N = 1 }`},
+		{"N", "float32", "default=1", `if self.N == 0 { self.N = 1 }`},
+		{"B", "bool", "default=true", `if self.B == false { self.B = true }`},
+		{"S", "string", "default=hello", `if self.S == "" { self.S = "hello" }`},
+		{"F", "func()", "default=func(){}", `if self.F == nil { self.F = func(){} }`},
+		{"S", "[]int", "default=[]int{}", `if self.S == nil { self.S = []int{} }`},
+		{"M", "map[int]bool", "default=make(map[int]bool)", `if self.M == nil { self.M = make(map[int]bool) }`},
+		{"D", "*Dog", "default=&Dog{}", `if self.D == nil { self.D = &Dog{} }`},
+		{"I", "interface{}", "default=0", `if self.I == nil { self.I = 0 }`},
+		{"A", "[2]int", `default=[2]int{}`, `if self.A == nil { self.A = [2]int{} }`},
 		{"List", "[]int", "required", `if self.List == nil { return errors.New("List must not nil") }`},
 		{"List", "[]int", "zero", `if self.List != nil { return errors.New("List must nil") }`},
 		{"N", "int", "min=0", `if self.N < 0 { return errors.New("N must greater than or equal 0") }`},

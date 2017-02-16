@@ -9,7 +9,6 @@ import (
 	"log"
 	"path/filepath"
 	"reflect"
-	"regexp"
 	"strings"
 )
 
@@ -113,8 +112,14 @@ func (f fieldDecl) Generate(w io.Writer, self string) error {
 		var e error
 		switch c.Name {
 		case "default":
+			var v string
+			if f.Type == "string" {
+				v = fmt.Sprintf(`"%s"`, c.Value)
+			} else {
+				v = c.Value
+			}
 			e = defaultTemplate.Execute(w, defaultTemplateInput{
-				field, zero, c.Value,
+				field, zero, v,
 			})
 		case "required", "notzero":
 			e = opTemplate.Execute(w, opTemplateInput{
@@ -125,33 +130,48 @@ func (f fieldDecl) Generate(w io.Writer, self string) error {
 				field, "!=", zero, fmt.Sprintf("%s must %s", f.Name, zero),
 			})
 		case "min", "gte":
-			e = opTemplate.Execute(w, opTemplateInput{
-				field, "<", c.Value, fmt.Sprintf("%s must greater than or equal %s", f.Name, c.Value),
-			})
+			if f.IsNumber() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					field, "<", c.Value, fmt.Sprintf("%s must greater than or equal %s", f.Name, c.Value),
+				})
+			}
 		case "max", "lte":
-			e = opTemplate.Execute(w, opTemplateInput{
-				field, ">", c.Value, fmt.Sprintf("%s must less than or equal %s", f.Name, c.Value),
-			})
+			if f.IsNumber() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					field, ">", c.Value, fmt.Sprintf("%s must less than or equal %s", f.Name, c.Value),
+				})
+			}
 		case "gt":
-			e = opTemplate.Execute(w, opTemplateInput{
-				field, "<=", c.Value, fmt.Sprintf("%s must greater than %s", f.Name, c.Value),
-			})
+			if f.IsNumber() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					field, "<=", c.Value, fmt.Sprintf("%s must greater than %s", f.Name, c.Value),
+				})
+			}
 		case "lt":
-			e = opTemplate.Execute(w, opTemplateInput{
-				field, ">=", c.Value, fmt.Sprintf("%s must less than %s", f.Name, c.Value),
-			})
+			if f.IsNumber() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					field, ">=", c.Value, fmt.Sprintf("%s must less than %s", f.Name, c.Value),
+				})
+			}
 		case "len":
-			e = opTemplate.Execute(w, opTemplateInput{
-				fieldlen, "!=", c.Value, fmt.Sprintf("%s length must %s", f.Name, c.Value),
-			})
+			if f.IsSlice() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					fieldlen, "!=", c.Value, fmt.Sprintf("%s length must %s", f.Name, c.Value),
+				})
+			}
+
 		case "lenmin":
-			e = opTemplate.Execute(w, opTemplateInput{
-				fieldlen, "<", c.Value, fmt.Sprintf("%s length must greater than or equal %s", f.Name, c.Value),
-			})
+			if f.IsSlice() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					fieldlen, "<", c.Value, fmt.Sprintf("%s length must greater than or equal %s", f.Name, c.Value),
+				})
+			}
 		case "lenmax":
-			e = opTemplate.Execute(w, opTemplateInput{
-				fieldlen, ">", c.Value, fmt.Sprintf("%s length must less than or equal %s", f.Name, c.Value),
-			})
+			if f.IsSlice() {
+				e = opTemplate.Execute(w, opTemplateInput{
+					fieldlen, ">", c.Value, fmt.Sprintf("%s length must less than or equal %s", f.Name, c.Value),
+				})
+			}
 		}
 		if e != nil {
 			return e
@@ -162,12 +182,76 @@ func (f fieldDecl) Generate(w io.Writer, self string) error {
 
 func (f fieldDecl) Zero() string {
 	var zero string
-	if ok, _ := regexp.MatchString(`^(?:u?int|float)`, f.Type); ok {
+	switch {
+	case f.IsNumber():
 		zero = "0"
-	} else if ok, _ := regexp.MatchString(`^(?:\[\]|map)`, f.Type); ok {
-		zero = "nil"
-	} else if f.Type == "bool" {
+	case f.IsBool():
 		zero = "false"
+	case f.IsString():
+		zero = `""`
+	case f.IsSlice() || f.IsMap() || f.IsChan() || f.IsFunc() || f.IsInterface() || f.IsPtr():
+		zero = "nil"
+	default:
+		zero = fmt.Sprintf("*new(%s)", f.Type)
 	}
 	return zero
+}
+
+func (f fieldDecl) IsNumber() bool {
+	return f.IsInt() || f.IsUint() || f.IsFloat() || f.IsComplex()
+}
+
+func (f fieldDecl) IsInt() bool {
+	if start(f.Type, "interface") {
+		return false
+	}
+	return start(f.Type, "int") || start(f.Type, "byte")
+}
+
+func (f fieldDecl) IsUint() bool {
+	return start(f.Type, "uint") || start(f.Type, "rune")
+}
+
+func (f fieldDecl) IsFloat() bool {
+	return start(f.Type, "float")
+}
+
+func (f fieldDecl) IsComplex() bool {
+	return start(f.Type, "complex")
+}
+
+func (f fieldDecl) IsBool() bool {
+	return start(f.Type, "bool")
+}
+
+func (f fieldDecl) IsString() bool {
+	return start(f.Type, "string")
+}
+
+func (f fieldDecl) IsMap() bool {
+	return start(f.Type, "map")
+}
+
+func (f fieldDecl) IsSlice() bool {
+	return start(f.Type, "[")
+}
+
+func (f fieldDecl) IsPtr() bool {
+	return start(f.Type, "*")
+}
+
+func (f fieldDecl) IsFunc() bool {
+	return start(f.Type, "func")
+}
+
+func (f fieldDecl) IsChan() bool {
+	return start(f.Type, "chan") || start(f.Type, "<-chan")
+}
+
+func (f fieldDecl) IsInterface() bool {
+	return start(f.Type, "interface")
+}
+
+func start(s, needle string) bool {
+	return strings.Index(s, needle) == 0
 }
