@@ -5,6 +5,7 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
+	"html/template"
 	"io"
 	"log"
 	"path/filepath"
@@ -102,6 +103,39 @@ func NewFieldDecl(name, typ, tag string) fieldDecl {
 		f.Conds = append(f.Conds, c)
 	}
 	return f
+}
+
+func (s structDecl) Generate(w io.Writer) error {
+	self := strings.ToLower(s.Name)
+	self = string(self[:1])
+
+	t := template.Must(template.New("header").Parse(`
+	func ({{ .Self }} {{ .Name }}) Valid() error {
+	`))
+
+	e := t.Execute(w, struct{ Self, Name string }{self, s.Name})
+	if e != nil {
+		return e
+	}
+
+	for _, f := range s.Fields {
+		e := f.Generate(w, self)
+		if e != nil {
+			return e
+		}
+	}
+
+	t = template.Must(template.New("footer").Parse(`
+		return nil
+	}
+	`))
+
+	e = t.Execute(w, nil)
+	if e != nil {
+		return e
+	}
+
+	return nil
 }
 
 func (f fieldDecl) Generate(w io.Writer, self string) error {

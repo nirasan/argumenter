@@ -47,6 +47,24 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestStructDecl_Generate(t *testing.T) {
+	s := structDecl{
+		Name: "MyStruct",
+		Fields: []fieldDecl{
+			NewFieldDecl("N", "int", "default=1,min=0,max=1"),
+			NewFieldDecl("S", "string", "required"),
+			NewFieldDecl("B", "bool", "required"),
+		},
+	}
+	w := new(bytes.Buffer)
+	e := s.Generate(w)
+	if e != nil {
+		t.Error("error: ", e)
+	} else {
+		t.Logf("%v", w.String())
+	}
+}
+
 func TestFieldDecl_Generate(t *testing.T) {
 	samples := []struct {
 		Name, Type, Tag, Out string
