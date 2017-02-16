@@ -127,3 +127,8 @@ func TestFieldDecl_Generate(t *testing.T) {
 		w.Reset()
 	}
 }
+
+func TestWriteFile(t *testing.T) {
+	p := ReadFile("test/file1.go")
+	WriteFile(p, []string{"Pill"}, true)
+}
