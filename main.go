@@ -104,6 +104,18 @@ func NewFieldDecl(name, typ, tag string) fieldDecl {
 	return f
 }
 
+func (p packageDecl) SelectStructs(names []string) []structDecl {
+	result := []structDecl{}
+	for _, s := range p.Structs {
+		for _, n := range names {
+			if s.Name == n {
+				result = append(result, s)
+			}
+		}
+	}
+	return result
+}
+
 func (s structDecl) Generate(w io.Writer) error {
 	self := strings.ToLower(s.Name)
 	self = string(self[:1])

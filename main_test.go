@@ -47,6 +47,24 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
+func TestPackageDecl_SelectStructs(t *testing.T) {
+	p := packageDecl{
+		Structs: []structDecl{
+			structDecl{Name: "Dog"},
+			structDecl{Name: "Cat"},
+			structDecl{Name: "Bird"},
+		},
+	}
+	ss := p.SelectStructs([]string{"Cat"})
+	if len(ss) != 1 || ss[0].Name != "Cat" {
+		t.Error("error", ss)
+	}
+	ss = p.SelectStructs([]string{"Cat", "Bird"})
+	if len(ss) != 2 || ss[0].Name != "Cat" || ss[1].Name != "Bird" {
+		t.Error("error", ss)
+	}
+}
+
 func TestStructDecl_Generate(t *testing.T) {
 	s := structDecl{
 		Name: "MyStruct",
