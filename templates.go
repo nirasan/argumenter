@@ -2,6 +2,19 @@ package main
 
 import "text/template"
 
+var funcHeaderTemplate = template.Must(template.New("func_header").Parse(`
+func ({{ .Self }} {{ .Name }}) Valid() error {
+`))
+
+type funcHeaderTemplateInput struct {
+	Self, Name string
+}
+
+var funcFooterTemplate = template.Must(template.New("func_footer").Parse(`
+	return nil
+}
+`))
+
 var defaultTemplate = template.Must(template.New("default").Parse(`
 if {{ .Field }} == {{ .Zero }} {
 	{{ .Field }} = {{ .Default }}

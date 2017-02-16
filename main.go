@@ -5,7 +5,6 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"html/template"
 	"io"
 	"log"
 	"path/filepath"
@@ -109,11 +108,7 @@ func (s structDecl) Generate(w io.Writer) error {
 	self := strings.ToLower(s.Name)
 	self = string(self[:1])
 
-	t := template.Must(template.New("header").Parse(`
-	func ({{ .Self }} {{ .Name }}) Valid() error {
-	`))
-
-	e := t.Execute(w, struct{ Self, Name string }{self, s.Name})
+	e := funcHeaderTemplate.Execute(w, funcHeaderTemplateInput{self, s.Name})
 	if e != nil {
 		return e
 	}
@@ -125,12 +120,7 @@ func (s structDecl) Generate(w io.Writer) error {
 		}
 	}
 
-	t = template.Must(template.New("footer").Parse(`
-		return nil
-	}
-	`))
-
-	e = t.Execute(w, nil)
+	e = funcFooterTemplate.Execute(w, nil)
 	if e != nil {
 		return e
 	}
