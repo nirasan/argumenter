@@ -1,13 +1,17 @@
 
 # argumenter
 
+
+
 # Usage
 
 ```
-argumenter -type NAME
+argumenter -type T1,T2 -out OUTPUT INPUT
 ```
 
 # Input code
+
+* file name is `file.go`
 
 ```go
 package main
@@ -18,7 +22,15 @@ type MyType struct {
 }
 ```
 
+# Generate command
+
+```
+argumenter -type MyType file.go
+```
+
 # Generate code
+
+* output file name is `file_argumenter.go`
 
 ```go
 func (m *MyType) Valid() error {
