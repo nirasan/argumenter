@@ -7,8 +7,10 @@ import (
 	"testing"
 )
 
-func TestReadFile(t *testing.T) {
-	p := ReadFile("test/file1.go")
+func TestGenerator_ReadFile(t *testing.T) {
+	g := NewGenerator()
+	g.ReadFile("test/file1.go")
+	p := g.Package
 	if p.Name != "main" || p.Dir != "test" || p.File != "file1.go" || len(p.Structs) != 1 {
 		t.Errorf("invalid package: %v", p)
 	} else {
@@ -47,7 +49,17 @@ func TestReadFile(t *testing.T) {
 	}
 }
 
-func TestPackageDecl_SelectStructs(t *testing.T) {
+func TestGenerator_Generate(t *testing.T) {
+	g := NewGenerator()
+	g.ReadFile("test/file1.go")
+	src, e := g.Generate([]string{"Pill"})
+	if e != nil {
+		t.Error(e)
+	}
+	t.Logf("%s", src)
+}
+
+func TestGenerator_SelectStructs(t *testing.T) {
 	p := packageDecl{
 		Structs: []structDecl{
 			structDecl{Name: "Dog"},
@@ -55,11 +67,12 @@ func TestPackageDecl_SelectStructs(t *testing.T) {
 			structDecl{Name: "Bird"},
 		},
 	}
-	ss := p.SelectStructs([]string{"Cat"})
+	g := &Generator{Package: p}
+	ss := g.SelectStructs([]string{"Cat"})
 	if len(ss) != 1 || ss[0].Name != "Cat" {
 		t.Error("error", ss)
 	}
-	ss = p.SelectStructs([]string{"Cat", "Bird"})
+	ss = g.SelectStructs([]string{"Cat", "Bird"})
 	if len(ss) != 2 || ss[0].Name != "Cat" || ss[1].Name != "Bird" {
 		t.Error("error", ss)
 	}
@@ -126,9 +139,4 @@ func TestFieldDecl_Generate(t *testing.T) {
 		}
 		w.Reset()
 	}
-}
-
-func TestWriteFile(t *testing.T) {
-	p := ReadFile("test/file1.go")
-	WriteFile(p, []string{"Pill"}, true)
 }
