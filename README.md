@@ -1,12 +1,12 @@
 
 # argumenter
 
-
+* argumenter is golang argumentation struct's validation method generator.
 
 # Usage
 
 ```
-argumenter -type T1,T2 -out OUTPUT INPUT
+argumenter -type T1[,T2] [-out OUTPUT] INPUT
 ```
 
 # Input code
