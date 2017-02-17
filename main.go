@@ -51,8 +51,8 @@ type (
 
 // vars for flag
 var (
-	types        = flag.String("type", "", "target type names.")
-	outputOption = flag.String("out", "", "output filename.")
+	types        = flag.String("type", "", "comma-separated list of type names; must be set")
+	outputOption = flag.String("out", "", "output file name; default srcdir/<input_file_name>_argumenter.go")
 )
 
 // vars for template
@@ -105,12 +105,20 @@ type (
 	}
 )
 
+func Usage() {
+	fmt.Fprintf(os.Stderr, "Usage of %s:\n", os.Args[0])
+	fmt.Fprintf(os.Stderr, "\tstringer [flags] file\n")
+	fmt.Fprintf(os.Stderr, "Flags:\n")
+	flag.PrintDefaults()
+}
+
 func main() {
 	flag.Parse()
+	flag.Usage = Usage
 	filename := flag.Arg(0)
 	if filename == "" || *types == "" {
-		//TODO Usage
-		os.Exit(1)
+		flag.Usage()
+		os.Exit(2)
 	}
 	g := NewGenerator()
 	g.ReadFile(filename)
