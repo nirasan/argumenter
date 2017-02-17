@@ -8,6 +8,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"go/types"
 	"io"
 	"io/ioutil"
 	"log"
@@ -51,7 +52,7 @@ type (
 
 // vars for flag
 var (
-	types        = flag.String("type", "", "comma-separated list of type names; must be set")
+	typeNames    = flag.String("type", "", "comma-separated list of type names; must be set")
 	outputOption = flag.String("out", "", "output file name; default srcdir/<input_file_name>_argumenter.go")
 )
 
@@ -116,14 +117,14 @@ func main() {
 	flag.Parse()
 	flag.Usage = Usage
 	filename := flag.Arg(0)
-	if filename == "" || *types == "" {
+	if filename == "" || *typeNames == "" {
 		flag.Usage()
 		os.Exit(2)
 	}
 	g := NewGenerator()
 	g.ReadFile(filename)
 
-	src, e := g.Generate(strings.Split(*types, ","))
+	src, e := g.Generate(strings.Split(*typeNames, ","))
 	if e != nil {
 		panic(e)
 	}
@@ -190,13 +191,12 @@ func (g *Generator) ReadFile(filename string) {
 				Name:   n.Name.Name,
 				Fields: []fieldDecl{},
 			}
-			// ast.Print(fset, n)
 			if n.Name.Obj != nil && n.Name.Obj.Kind == ast.Typ {
 				ast.Inspect(n, func(nn ast.Node) bool {
 					switch nn := nn.(type) {
 					case *ast.Field:
 						fieldName := nn.Names[0].Name
-						fieldType := nn.Type.(*ast.Ident).Name
+						fieldType := types.ExprString(nn.Type)
 						fieldTag := nn.Tag.Value
 						structTag := reflect.StructTag(strings.Trim(fieldTag, "`"))
 						fd := NewFieldDecl(fieldName, fieldType, structTag.Get("arg"))
@@ -213,13 +213,13 @@ func (g *Generator) ReadFile(filename string) {
 	g.Package = pd
 }
 
-func (g *Generator) Generate(types []string) ([]byte, error) {
-	e := packageTemplate.Execute(g.Buf, packageTemplateInput{g.Package.Name, strings.Join(types, ",")})
+func (g *Generator) Generate(typeNames []string) ([]byte, error) {
+	e := packageTemplate.Execute(g.Buf, packageTemplateInput{g.Package.Name, strings.Join(typeNames, ",")})
 	if e != nil {
 		return nil, e
 	}
 
-	for _, s := range g.SelectStructs(types) {
+	for _, s := range g.SelectStructs(typeNames) {
 		e := s.Generate(g.Buf)
 		if e != nil {
 			return nil, e
