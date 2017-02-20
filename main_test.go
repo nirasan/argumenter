@@ -8,7 +8,7 @@ import (
 )
 
 func TestGenerator_ReadFile(t *testing.T) {
-	g := NewGenerator()
+	g := newGenerator()
 	g.ReadFile("test/file1.go")
 	p := g.Package
 	if p.Name != "main" || p.Dir != "test" || p.File != "file1.go" || len(p.Structs) != 1 {
@@ -50,7 +50,7 @@ func TestGenerator_ReadFile(t *testing.T) {
 }
 
 func TestGenerator_Generate(t *testing.T) {
-	g := NewGenerator()
+	g := newGenerator()
 	g.ReadFile("test/file1.go")
 	src, e := g.Generate([]string{"Pill"})
 	if e != nil {
@@ -67,7 +67,7 @@ func TestGenerator_SelectStructs(t *testing.T) {
 			structDecl{Name: "Bird"},
 		},
 	}
-	g := &Generator{Package: p}
+	g := &generator{Package: p}
 	ss := g.SelectStructs([]string{"Cat"})
 	if len(ss) != 1 || ss[0].Name != "Cat" {
 		t.Error("error", ss)
@@ -82,9 +82,9 @@ func TestStructDecl_Generate(t *testing.T) {
 	s := structDecl{
 		Name: "MyStruct",
 		Fields: []fieldDecl{
-			NewFieldDecl("N", "int", "default=1,min=0,max=1"),
-			NewFieldDecl("S", "string", "required"),
-			NewFieldDecl("B", "bool", "required"),
+			newFieldDecl("N", "int", "default=1,min=0,max=1"),
+			newFieldDecl("S", "string", "required"),
+			newFieldDecl("B", "bool", "required"),
 		},
 	}
 	w := new(bytes.Buffer)
@@ -123,10 +123,10 @@ func TestFieldDecl_Generate(t *testing.T) {
 	}
 	w := new(bytes.Buffer)
 	for _, sample := range samples {
-		f := NewFieldDecl(sample.Name, sample.Type, sample.Tag)
+		f := newFieldDecl(sample.Name, sample.Type, sample.Tag)
 		e := f.Generate(w, "self")
 		if e != nil {
-			t.Error("error: %v", e)
+			t.Errorf("error: %v", e)
 		}
 
 		re := regexp.MustCompile(`[\s\n]+`)
