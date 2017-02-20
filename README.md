@@ -1,7 +1,7 @@
 
 # argumenter
 
-* argumenter is golang argumentation struct's validation method generator.
+* argumenter is golang argumentation struct's validation function generator.
 
 # Usage
 
@@ -18,7 +18,7 @@ package main
 
 type MyType struct {
 	I  int          `arg:"default=5,min=0,max=10"`
-	S  string       `arg:"required"`
+	S  string       `arg:"default=hello"`
 	SI []int        `arg:"required,lenmin=1,lenmax=4"`
 	M  map[int]bool `arg:"required"`
 	F  func()       `arg:"required"`
@@ -33,7 +33,7 @@ type MyType struct {
 argumenter -type MyType file.go
 ```
 
-# Generate code
+# Generated code
 
 * output file name is `file_argumenter.go`
 
@@ -58,7 +58,7 @@ func (m MyType) Valid() error {
 	}
 
 	if m.S == "" {
-		return errors.New("S must not \"\"")
+		m.S = "hello"
 	}
 
 	if m.SI == nil {
@@ -90,6 +90,17 @@ func (m MyType) Valid() error {
 	}
 
 	return nil
+}
+```
+
+# How to use generated function
+
+```
+func AnyFunc(m MyType) {
+    if e := m.Valud() {
+        // Validation error handling
+    }
+    num := m.I // I field is validated and default value filled
 }
 ```
 
