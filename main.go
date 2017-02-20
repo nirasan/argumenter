@@ -66,7 +66,7 @@ import "errors"
 `))
 
 	funcHeaderTemplate = template.Must(template.New("func_header").Parse(`
-func ({{ .Self }} {{ .Name }}) Valid() error {
+func ({{ .Self }} *{{ .Name }}) Valid() error {
 `))
 
 	funcFooterTemplate = template.Must(template.New("func_footer").Parse(`

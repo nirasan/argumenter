@@ -64,7 +64,7 @@ package main
 
 import "errors"
 
-func (p Pill) Valid() error {
+func (p *Pill) Valid() error {
 
 	if p.Name == "" {
 		return errors.New("Name must not \"\"")

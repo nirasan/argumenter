@@ -43,7 +43,7 @@ package main
 
 import "errors"
 
-func (m MyType) Valid() error {
+func (m *MyType) Valid() error {
 
 	if m.I == 0 {
 		m.I = 5
@@ -96,7 +96,7 @@ func (m MyType) Valid() error {
 # How to use generated function
 
 ```
-func AnyFunc(m MyType) {
+func AnyFunc(m *MyType) {
     if e := m.Valud() {
         // Validation error handling
     }
