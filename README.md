@@ -92,3 +92,7 @@ func (m MyType) Valid() error {
 	return nil
 }
 ```
+
+# License
+
+MIT
